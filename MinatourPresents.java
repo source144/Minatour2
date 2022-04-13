@@ -3,14 +3,9 @@
 // CAP 4520
 // Parallel & Distributed Processing
 // Spring 2022
-import java.util.concurrent.atomic.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.concurrent.ConcurrentLinkedDeque;
-import java.util.concurrent.ThreadLocalRandom;
-import java.util.concurrent.ConcurrentHashMap;
-import java.nio.file.AccessDeniedException;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -46,26 +41,11 @@ public class MinatourPresents {
   //
   //////////////////////////////////////////////////////////////////////
 
-  
-  private static final int NUM_SERVANTS = 4;                                          // Number of threads actually
-  private static final int MIN_NUM_PRESENTS = 100;                                    // Ensure a lower bound for n
-  private static final String DEFAULT_NUM_PRESENTS_ARG = "500000";                    // Default #-of presents (n)
-  private static int NUM_PRESENTS = Integer.parseInt(DEFAULT_NUM_PRESENTS_ARG);       // The actual #-of presents
-  public static ConcurrentLinkedDeque<Integer> bag = new ConcurrentLinkedDeque<>();   // The unordered bag
-  public static ConcurrentLinkedDeque<Integer> chain = new ConcurrentLinkedDeque<>(); // The linked List chain
-
-  // Task Operations (Ops)
-  public enum TASK {
-    ADD, REMOVE, FIND;
-
-    private static final TASK[] VALUES = values();
-    private static final int SIZE = VALUES.length;
-
-    // Get random Operation
-    public static TASK RANDOM() {
-      return values()[ThreadLocalRandom.current().nextInt(0, SIZE)];
-    }
-  }
+  private static final int NUM_SERVANTS = 4; // Number of threads actually
+  private static final int MIN_NUM_PRESENTS = 100; // Ensure a lower bound for n
+  private static final String DEFAULT_NUM_PRESENTS_ARG = "500000"; // Default #-of presents (n)
+  private static int NUM_PRESENTS = Integer.parseInt(DEFAULT_NUM_PRESENTS_ARG); // The actual #-of presents
+  public static ConcurrentLinkedDeque<Integer> bag = new ConcurrentLinkedDeque<>(); // The unordered bag
 
   // For command-line arguments
   private static HashMap<String, String> options = new HashMap<>() {
@@ -120,55 +100,16 @@ public class MinatourPresents {
     bag.addAll(tagRange);
 
     // Initialzie the Concurrent Linked List chain
-    List<Integer> chain = new ArrayList<>();
+    LockFreeList<String> chain = new LockFreeList<>();
 
     // Initialize the Servant Threads!:)x
     // Linear O(n), where n is NUM_SERVANTS
     Thread[] servants = new Thread[NUM_SERVANTS];
     for (int i = 0; i < NUM_SERVANTS; i++) {
-      servants[i] = new Thread(new PresentRun(chain, i));
+      servants[i] = new Thread(new PresentRun(chain, i, NUM_PRESENTS));
       servants[i].start(); // Get i-th servant to work
                            // Them/They ain't getting paid
                            // to just sit there! wasted RAM.
     }
   }
-
-  // Thread worker
-  static class PresentRun implements Runnable {
-
-    private final int servantId;
-    public AtomicReference<List<Integer>> chain;
-
-    public PresentRun(List<Integer> chain, int id) {
-      this.chain = new AtomicReference<>(chain);
-      this.servantId = id;
-    }
-
-    public void run() {
-      // Get random task
-      TASK task = TASK.RANDOM();
-      int tag = 0;
-
-      switch (task) {
-        case ADD:
-          chain.get().add(bag.pop());
-          break;
-        case REMOVE:
-          chain.get().remove(tag);
-          break;
-        case FIND:
-          tag = ThreadLocalRandom.current().nextInt(0, NUM_PRESENTS) + 1;
-          chain.get().contains(tag);
-          break;
-      }
-    }
-  }
-
-  // Node
-  public class Node<T> {
-    T item;
-    int key;
-    Node<T> next;
-  }
 }
-
