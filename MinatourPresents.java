@@ -6,6 +6,7 @@
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -43,19 +44,28 @@ public class MinatourPresents {
 
   private static final int NUM_SERVANTS = 4; // Number of threads actually
   private static final int MIN_NUM_PRESENTS = 100; // Ensure a lower bound for n
+  private static final String DEFAULT_DEBUG_ARG = "false"; // Default argument for debug prints
+  public static boolean DEBUG = Boolean.parseBoolean(DEFAULT_DEBUG_ARG); // The actual #-of presents
   private static final String DEFAULT_NUM_PRESENTS_ARG = "500000"; // Default #-of presents (n)
   private static int NUM_PRESENTS = Integer.parseInt(DEFAULT_NUM_PRESENTS_ARG); // The actual #-of presents
   public static ConcurrentLinkedDeque<Integer> bag = new ConcurrentLinkedDeque<>(); // The unordered bag
+	public static AtomicInteger thankYous = new AtomicInteger(0); // Number of "Thank Yous" written
 
   // For command-line arguments
   private static HashMap<String, String> options = new HashMap<>() {
     {
       put("-numPresents", DEFAULT_NUM_PRESENTS_ARG);
+      put("--debug", DEFAULT_DEBUG_ARG);
     }
   };
   private static HashSet<String> intArgs = new HashSet<>() {
     {
       add("-numPresents");
+    }
+  };
+  private static HashSet<String> boolArgs = new HashSet<>() {
+    {
+      add("--debug");
     }
   };
 
@@ -73,6 +83,8 @@ public class MinatourPresents {
             i++;
           }
         } else {
+          if (boolArgs.contains(arg))
+            options.put(arg, "true");
           // TODO if I want more type of args
         }
       }
@@ -80,6 +92,7 @@ public class MinatourPresents {
 
     // Apply configuration
     NUM_PRESENTS = Integer.max(MIN_NUM_PRESENTS, Integer.parseInt(options.get("-numPresents")));
+    DEBUG = Boolean.parseBoolean(options.get("--debug"));
   }
 
   public static void main(String[] args) throws Exception {
@@ -110,6 +123,47 @@ public class MinatourPresents {
       servants[i].start(); // Get i-th servant to work
                            // Them/They ain't getting paid
                            // to just sit there! wasted RAM.
+    }
+
+    // Progressbar
+    if (!DEBUG) {
+      System.out.println("MinatourPresnts.java");
+      System.out.println();
+      System.out.println("Available arguments:");
+      System.out.println("   -numPresnts {int}  -   number of presents to process      (default: 500,000)");
+      System.out.println("   --debug            -   detail tasks performed by servants (default: off)");
+      System.out.println();
+      System.out.println(NUM_SERVANTS + " servants processing " + NUM_PRESENTS + " gifts for Minatour! (@^O^)");
+      int maxBarSize = 100, i;
+      StringBuilder sb = new StringBuilder();
+      String lastBar = "";
+
+      for (i = thankYous.get(); i < NUM_PRESENTS; i = thankYous.get()) {
+        int percent = (int) (100.0 * i / NUM_PRESENTS);
+        int barSize = (int) (100.0 * percent / maxBarSize);
+        
+        // Bar
+        sb.setLength(0);
+        for (int j = 0; j < barSize; j++) sb.append("#");
+
+        // Save str for later deletion
+        lastBar = "[" + String.format("%-100s", sb.toString()) + "] " +  percent + "% (" + i + " / " + NUM_PRESENTS + ")";
+
+        // Rewrite bar
+        System.out.print(lastBar);
+        System.out.print("\r");
+
+        // Check every 100ms
+        Thread.sleep(100);
+      }
+
+      // Finalize bar
+      sb.setLength(0);
+      for (int j = 0; j < lastBar.length(); j++) sb.append(" ");
+      System.out.print(sb.toString());
+      System.out.print("\r");
+      System.out.println("Done. (⌐■_■)");
+      System.out.println();
     }
   }
 }
