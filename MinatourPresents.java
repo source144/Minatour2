@@ -128,7 +128,7 @@ public class MinatourPresents {
     for (int i = 0; i < NUM_SERVANTS; i++) {
       servants[i] = new Thread(new PresentRun(chain, i));
       servants[i].start(); // Get i-th servant to work
-                           // He/They ain't getting paid
+                           // Them/They ain't getting paid
                            // to just sit there! wasted RAM.
     }
   }
