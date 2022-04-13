@@ -1,7 +1,8 @@
 import java.util.concurrent.atomic.*;
 
 // Based off the book
-class LockFreeList<T> {
+class LockFreeList {
+  public static final int FAIL_FLAG = Integer.MAX_VALUE;
   Node head;
 
   public LockFreeList() {
@@ -11,14 +12,70 @@ class LockFreeList<T> {
       ;
   }
 
-  public boolean add(T item) {
-    int key = item.hashCode();
+  public boolean isEmpty() {
+
+    // We only need the first window or first occurence
+    // So no need to find a specific window
+
+    boolean[] marked = { false };
+    Node curr;
+
+    // Start from head->next
+    curr = head.next.get(marked);
+
+    // While marked and tail key (safety) -> move to next
+    while (marked[0] && curr.key != Integer.MAX_VALUE)
+      curr = curr.next.get(marked); // Move to next
+
+    // The list is empty if the cursor stops on the tail
+    return curr.key == Integer.MAX_VALUE;
+  }
+
+  public int pop() {
+
+    // We only need the first window or first occurence
+    // So no need to find a specific window...
+    // But strategy here is to find first key that is not marked
+    // and remove it. If we fail with the remove we try again
+    // We halt if we reach the tail.
+    //
+    // Note; calling remove will handle preserving links for us
+
+    boolean[] marked = { false };
+    boolean snip = true;
+    Node curr;
+    int key;
+
+    do {
+      // Start from head->next
+      curr = head.next.get(marked);
+
+      // While marked and tail key (safety) -> move to next
+      while (marked[0] && curr.key != Integer.MAX_VALUE)
+        curr = curr.next.get(marked); // Move to next
+
+      // The element to remove
+      key = curr.key;
+
+      // The list is empty if the cursor stops on the tail
+      // so there will be nothing to pop.. return false
+      if (key == Integer.MAX_VALUE)
+        return Integer.MAX_VALUE; // (Empty list)
+      
+      snip = remove(key);
+    } while (!snip);
+
+    // Successful removal, return element that was removed
+    return key;
+  }
+
+  public boolean add(int key) {
     while (true) {
       Window window = find(head, key);
       Node pred = window.pred, curr = window.curr;
 
       if (curr.key != key) {
-        Node node = new Node(item);
+        Node node = new Node(key);
         node.next = new AtomicMarkableReference<Node>(curr, false);
 
         if (pred.next.compareAndSet(curr, node, false, false)) {
@@ -29,15 +86,14 @@ class LockFreeList<T> {
     }
   }
 
-  public boolean remove(T item) {
-    int key = item.hashCode();
+  public boolean remove(int key) {
     boolean snip;
 
     while (true) {
       Window window = find(head, key);
       Node pred = window.pred, curr = window.curr;
 
-      if (curr.key != key) {
+      if (curr.key == key) {
         Node succ = curr.next.getReference();
         snip = curr.next.attemptMark(succ, true);
 
@@ -52,8 +108,7 @@ class LockFreeList<T> {
     }
   }
 
-  public boolean contains(T item) {
-    int key = item.hashCode();
+  public boolean contains(int key) {
     Window window = find(head, key);
     Node curr = window.curr;
     return curr.key == key;
@@ -62,16 +117,8 @@ class LockFreeList<T> {
   class Node {
     AtomicMarkableReference<Node> next;
     int key;
-    T item;
-
-    Node(T item) {
-      this.item = item;
-      this.key = item.hashCode();
-      this.next = new AtomicMarkableReference<Node>(null, false);
-    }
 
     Node(int key) {
-      this.item = null;
       this.key = key;
       this.next = new AtomicMarkableReference<Node>(null, false);
     }
