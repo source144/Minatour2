@@ -100,7 +100,7 @@ public class MinatourPresents {
     bag.addAll(tagRange);
 
     // Initialzie the Concurrent Linked List chain
-    LockFreeList<String> chain = new LockFreeList<>();
+    LockFreeList chain = new LockFreeList();
 
     // Initialize the Servant Threads!:)x
     // Linear O(n), where n is NUM_SERVANTS
