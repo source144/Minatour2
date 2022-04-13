@@ -1,9 +1,4 @@
-import java.util.ArrayList;
-import java.util.List;
-import java.util.PriorityQueue;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.IntStream;
 
 public class ReportRun implements Runnable {
@@ -127,6 +122,10 @@ public class ReportRun implements Runnable {
       minVector = new int[temps[0].length];
 
       // Populate the vectors
+      // This is technically O(n) so it can be considered safe
+      // From her on out, the data at this point is cloned
+      // So even if sensors keep overwriting data,
+      // it won't affect this report.
       for (int i = 0; i < temps[0].length; i++) {
         int minTemp = Integer.MAX_VALUE;
         int maxTemp = Integer.MIN_VALUE;
