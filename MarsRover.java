@@ -131,7 +131,7 @@ public class MarsRover {
       System.out.println("Sensor Time Interval must be greater than Change Time interval!");
     }
 
-    // Ensure Safety:
+    // Ensure Synchronization Safety: 
     REPORT_TIME = SENSOR_TIME * Math.round((1.0 * REPORT_TIME)/ SENSOR_TIME);
     CHANGE_TIME = SENSOR_TIME * Math.round((1.0 * CHANGE_TIME)/ SENSOR_TIME);
   }
